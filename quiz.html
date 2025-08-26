@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GK Quizz</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #70e1f5, #ffd194);
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 700px;
+    margin: auto;
+    background: white;
+    padding: 30px 40px;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  }
+  h1 {
+    text-align: center;
+    color: #3366cc;
+    font-weight: 700;
+    margin-bottom: 30px;
+    text-shadow: 1px 1px 4px #a0aaff;
+  }
+  .question {
+    font-size: 1.3em;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #444;
+  }
+  .answers {
+    list-style: none;
+    padding: 0;
+  }
+  .answers li {
+    background: #f0f4ff;
+    margin-bottom: 10px;
+    padding: 12px 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1.1em;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+  }
+  .answers li:hover {
+    background: #cce0ff;
+    border-color: #3385ff;
+    color: #003399;
+    font-weight: 600;
+  }
+  .answers li.selected {
+    background-color: #3385ff;
+    color: white;
+    border-color: #003399;
+  }
+  button {
+    background: #ff7f50;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    font-size: 1.2em;
+    border-radius: 30px;
+    cursor: pointer;
+    margin-top: 20px;
+    display: block;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(255,127,80,0.7);
+    transition: background-color 0.3s ease;
+  }
+  button:disabled {
+    background: #ffa07a;
+    cursor: not-allowed;
+  }
+  #result {
+    margin-top: 30px;
+    text-align: center;
+  }
+  #result-text {
+    font-size: 1.5em;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #222;
+  }
+  canvas {
+    max-width: 300px;
+    margin: auto;
+    display: block;
+  }
+  #summary {
+    margin-top: 30px;
+    text-align: left;
+  }
+  #summary h2 {
+    text-align: center;
+    margin-bottom: 15px;
+    color: #3366cc;
+  }
+  .summary-item {
+    margin-bottom: 15px;
+    padding: 15px;
+    border-radius: 10px;
+    background: #e9f0ff;
+    box-shadow: inset 0 0 8px #b3c6ff;
+  }
+  .summary-item.correct {
+    border-left: 6px solid #4caf50;
+  }
+  .summary-item.wrong {
+    border-left: 6px solid #f44336;
+  }
+  .user-answer {
+    font-weight: 600;
+  }
+  .correct-answer {
+    color: #4caf50;
+    font-weight: 600;
+  }
+  .wrong-answer {
+    color: #f44336;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>GK Quizz</h1>
+  <div id="quiz">
+    <div id="question-container">
+      <div id="question" class="question">Question text</div>
+      <ul id="answer-buttons" class="answers"></ul>
+    </div>
+    <button id="next-btn" disabled>Next</button>
+    <div id="result" style="display:none;">
+      <div id="result-text"></div>
+      <canvas id="scoreChart"></canvas>
+      <div id="summary"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// New moderate difficulty questions added at the front
+const quizData = [
+  {
+    question: "Which country is known as the Land of the Rising Sun?",
+    answers: [
+      { text: "Japan", correct: true },
+      { text: "China", correct: false },
+      { text: "Thailand", correct: false },
+      { text: "South Korea", correct: false }
+    ]
+  },
+  {
+    question: "What is the smallest prime number?",
+    answers: [
+      { text: "2", correct: true },
+      { text: "1", correct: false },
+      { text: "3", correct: false },
+      { text: "0", correct: false }
+    ]
+  },
+  {
+    question: "Which element has the chemical symbol 'O'?",
+    answers: [
+      { text: "Oxygen", correct: true },
+      { text: "Gold", correct: false },
+      { text: "Silver", correct: false },
+      { text: "Osmium", correct: false }
+    ]
+  },
+  {
+    question: "What language has the most native speakers worldwide?",
+    answers: [
+      { text: "Mandarin Chinese", correct: true },
+      { text: "English", correct: false },
+      { text: "Spanish", correct: false },
+      { text: "Hindi", correct: false }
+    ]
+  },
+  {
+    question: "Who was the first person to walk on the Moon?",
+    answers: [
+      { text: "Neil Armstrong", correct: true },
+      { text: "Buzz Aldrin", correct: false },
+      { text: "Yuri Gagarin", correct: false },
+      { text: "Michael Collins", correct: false }
+    ]
+  },
+  // Existing questions continue below
+  {
+    question: "What is the capital of France?",
+    answers: [
+      { text: "Berlin", correct: false },
+      { text: "Madrid", correct: false },
+      { text: "Paris", correct: true },
+      { text: "Lisbon", correct: false },
+    ],
+  },
+  {
+    question: "Which planet is known as the Red Planet?",
+    answers: [
+      { text: "Earth", correct: false },
+      { text: "Mars", correct: true },
+      { text: "Jupiter", correct: false },
+      { text: "Saturn", correct: false },
+    ],
+  },
+  {
+    question: "Who wrote 'Hamlet'?",
+    answers: [
+      { text: "Charles Dickens", correct: false },
+      { text: "Mark Twain", correct: false },
+      { text: "William Shakespeare", correct: true },
+      { text: "Leo Tolstoy", correct: false },
+    ],
+  },
+  {
+    question: "What is the largest ocean on Earth?",
+    answers: [
+      { text: "Atlantic Ocean", correct: false },
+      { text: "Indian Ocean", correct: false },
+      { text: "Pacific Ocean", correct: true },
+      { text: "Arctic Ocean", correct: false },
+    ],
+  },
+  {
+    question: "In which year did the Titanic sink?",
+    answers: [
+      { text: "1912", correct: true },
+      { text: "1905", correct: false },
+      { text: "1898", correct: false },
+      { text: "1923", correct: false },
+    ],
+  },
+  {
+    question: "What is the chemical symbol for gold?",
+    answers: [
+      { text: "Au", correct: true },
+      { text: "Ag", correct: false },
+      { text: "Gd", correct: false },
+      { text: "Pb", correct: false },
+    ],
+  },
+  {
+    question: "Who painted the Mona Lisa?",
+    answers: [
+      { text: "Leonardo da Vinci", correct: true },
+      { text: "Vincent Van Gogh", correct: false },
+      { text: "Pablo Picasso", correct: false },
+      { text: "Michelangelo", correct: false },
+    ],
+  },
+  {
+    question: "Which gas do plants absorb from the atmosphere?",
+    answers: [
+      { text: "Oxygen", correct: false },
+      { text: "Nitrogen", correct: false },
+      { text: "Carbon Dioxide", correct: true },
+      { text: "Helium", correct: false },
+    ],
+  },
+];
+
+const questionContainer = document.getElementById('question-container');
+const questionElement = document.getElementById('question');
+const answerButtonsElement = document.getElementById('answer-buttons');
+const nextButton = document.getElementById('next-btn');
+const resultElement = document.getElementById('result');
+const resultText = document.getElementById('result-text');
+const scoreChartCanvas = document.getElementById('scoreChart');
+const summaryElement = document.getElementById('summary');
+
+let currentQuestionIndex = 0;
+let score = 0;
+let selectedAnswer = null;
+let userAnswers = [];
+let scoreChart = null;
+
+function startQuiz() {
+  currentQuestionIndex = 0;
+  score = 0;
+  userAnswers = [];
+  resultElement.style.display = 'none';
+  summaryElement.innerHTML = '';
+  nextButton.innerText = 'Next';
+  questionContainer.style.display = 'block';
+  nextButton.style.display = 'inline-block';
+  showQuestion(quizData[currentQuestionIndex]);
+}
+
+function showQuestion(question) {
+  resetState();
+  questionElement.innerText = question.question;
+  question.answers.forEach(answer => {
+    const button = document.createElement('li');
+    button.innerText = answer.text;
+    button.classList.add('answer');
+    button.addEventListener('click', () => selectAnswer(button, answer.text));
+    answerButtonsElement.appendChild(button);
+  });
+}
+
+function resetState() {
+  nextButton.disabled = true;
+  selectedAnswer = null;
+  while(answerButtonsElement.firstChild) {
+    answerButtonsElement.removeChild(answerButtonsElement.firstChild);
+  }
+}
+
+// Select answer without immediate correctness feedback, just highlight selection
+function selectAnswer(button, selectedText) {
+  if (selectedAnswer !== null) return;
+  selectedAnswer = button;
+
+  // Highlight selected button
+  Array.from(answerButtonsElement.children).forEach(btn => btn.classList.remove('selected'));
+  button.classList.add('selected');
+
+  nextButton.disabled = false;
+
+  // Store user answer to validate later
+  userAnswers[currentQuestionIndex] = selectedText;
+}
+
+function showResult() {
+  questionContainer.style.display = 'none';
+  nextButton.style.display = 'none';
+  resultElement.style.display = 'block';
+
+  // Calculate total score
+  score = 0;
+  userAnswers.forEach((answerText, index) => {
+    if (quizData[index].answers.find(ans => ans.correct).text === answerText) {
+      score++;
+    }
+  });
+
+  resultText.innerText = `You scored ${score} out of ${quizData.length}!`;
+
+  if (scoreChart) {
+    scoreChart.destroy();
+  }
+  scoreChart = new Chart(scoreChartCanvas, {
+    type: 'pie',
+    data: {
+      labels: ['Correct', 'Incorrect'],
+      datasets: [{
+        data: [score, quizData.length - score],
+        backgroundColor: ['#4caf50', '#ff6384'],
+        hoverBackgroundColor: ['#388e3c', '#ff4567']
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { font: { size: 16 } }
+        },
+        tooltip: {
+          enabled: true
+        }
+      }
+    }
+  });
+
+  // Show detailed summary with correct/wrong answers
+  summaryElement.innerHTML = '<h2>Your Answers Summary</h2>';
+  quizData.forEach((q, i) => {
+    const userAnswerText = userAnswers[i];
+    const correctAnswerText = q.answers.find(ans => ans.correct).text;
+    const isCorrect = userAnswerText === correctAnswerText;
+    const itemClass = isCorrect ? 'correct' : 'wrong';
+
+    const html = `
+      <div class="summary-item ${itemClass}">
+        <div><strong>Q${i + 1}:</strong> ${q.question}</div>
+        <div>Your answer: <span class="user-answer">${userAnswerText || 'No answer'}</span> ${isCorrect ? '✅ Correct' : '❌ Wrong'}</div>
+        ${isCorrect ? '' : `<div>Correct answer: <span class="correct-answer">${correctAnswerText}</span></div>`}
+      </div>
+    `;
+    summaryElement.innerHTML += html;
+  });
+}
+
+nextButton.addEventListener('click', () => {
+  currentQuestionIndex++;
+  if (currentQuestionIndex < quizData.length) {
+    showQuestion(quizData[currentQuestionIndex]);
+  } else {
+    showResult();
+  }
+});
+
+startQuiz();
+</script>
+</body>
+</html>
